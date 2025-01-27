@@ -18,18 +18,17 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+#define MAX_PRINTF_LEN 100
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -45,7 +44,7 @@
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim1;
 
-UART_HandleTypeDef huart6;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 volatile uint32_t timerTicks = 0;
@@ -55,7 +54,7 @@ volatile uint32_t timerTicks = 0;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_USART6_UART_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void UART_Print(UART_HandleTypeDef *huart, const char* string);
 void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...);
@@ -95,12 +94,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM1_Init();
-  MX_USART6_UART_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim1);
 
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
-  UART_Print(&huart6,  "Initialization done!");
+  UART_Print(&huart1,  "Initialization done!");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -110,8 +109,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (timerTicks % 5 == 0){
-		  UART_Printf(&huart6, "Timer ticks: %d\n", timerTicks);
+	  if (timerTicks % 1000 == 0){
+//		  UART_Printf(&huart1, "Timer ticks: %d\n", timerTicks);
+		  uint32_t totalSeconds = timerTicks / 1000;
+		  uint32_t minutes = totalSeconds / 60;
+		  uint32_t seconds = totalSeconds % 60;
+		  UART_Printf(&huart1, "%02d:%02d\n", minutes, seconds);
 	  }
   }
   /* USER CODE END 3 */
@@ -177,9 +180,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 1599;
+  htim1.Init.Prescaler = 15;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 9999;
+  htim1.Init.Period = 999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -205,35 +208,35 @@ static void MX_TIM1_Init(void)
 }
 
 /**
-  * @brief USART6 Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART6_UART_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USART6_Init 0 */
+  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END USART6_Init 0 */
+  /* USER CODE END USART1_Init 0 */
 
-  /* USER CODE BEGIN USART6_Init 1 */
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE END USART6_Init 1 */
-  huart6.Instance = USART6;
-  huart6.Init.BaudRate = 115200;
-  huart6.Init.WordLength = UART_WORDLENGTH_8B;
-  huart6.Init.StopBits = UART_STOPBITS_1;
-  huart6.Init.Parity = UART_PARITY_NONE;
-  huart6.Init.Mode = UART_MODE_TX_RX;
-  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart6) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART6_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END USART6_Init 2 */
+  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -275,7 +278,7 @@ void UART_Print(UART_HandleTypeDef *huart, const char* string){
 void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...){
 	va_list argp;
 	va_start(argp, string);
-	char stringf[100];
+	char stringf[MAX_PRINTF_LEN];
 	if (vsprintf(stringf, string, argp) > 0){
 		UART_Print(huart, stringf);
 	}
@@ -287,7 +290,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM1)
     {
     	timerTicks++;
-        HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+		if (timerTicks % 1000 == 0){
+			HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+		}
     }
 }
 
