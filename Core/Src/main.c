@@ -51,9 +51,11 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 volatile uint32_t timerTicks = 0;
+volatile uint8_t timerFlag500 = 0;
 volatile uint8_t timerFlag1000 = 0;
 
-uint32_t adcBuffer[1] = {0};
+volatile uint8_t adcFlag = 0;
+uint16_t adcBuffer[2] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,7 +108,6 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim1);
-  HAL_ADC_Start_DMA(&hadc1, adcBuffer, 1);
 
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
   UART_Print(&huart1,  "Initialization done!");
@@ -119,6 +120,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if (timerFlag500 && !adcFlag){
+		  timerFlag500 = 0;
+		  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, 2);
+		  adcFlag = 1;
+	  }
 	  if (timerFlag1000){
 		  timerFlag1000 = 0;
 //		  UART_Printf(&huart1, "Timer ticks: %d\n", timerTicks);
@@ -196,15 +202,15 @@ static void MX_ADC1_Init(void)
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ScanConvMode = ENABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = ENABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -212,10 +218,9 @@ static void MX_ADC1_Init(void)
 
   /** Configure the analog watchdog
   */
-  AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;
+  AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_ALL_REG;
   AnalogWDGConfig.HighThreshold = 3500;
   AnalogWDGConfig.LowThreshold = 500;
-  AnalogWDGConfig.Channel = ADC_CHANNEL_0;
   AnalogWDGConfig.ITMode = ENABLE;
   if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
   {
@@ -227,6 +232,15 @@ static void MX_ADC1_Init(void)
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -365,7 +379,6 @@ static void MX_GPIO_Init(void)
 
 void UART_Print(UART_HandleTypeDef *huart, const char* string){
 	HAL_UART_Transmit(huart, (uint8_t*)string, strlen(string), HAL_MAX_DELAY);
-//	HAL_UART_Transmit_DMA(huart, (uint8_t*)string, strlen(string));
 }
 
 void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...){
@@ -384,10 +397,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     {
     	timerTicks++;
 		if (timerTicks % 500 == 0){
-//			HAL_ADC_Start_IT(&hadc1);
-//	    	uint16_t adcValue = adcBuffer[0];
-//	        UART_Printf(&huart1, "ADC Value: %d\n", adcValue);
-			HAL_ADC_Start_DMA(&hadc1, adcBuffer, 1);
+			timerFlag500 = 1;
 		}
     	if (timerTicks % 1000 == 0){
     		timerFlag1000 = 1;
@@ -398,20 +408,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
-
+    	adcFlag = 0;
     }
 }
 
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
-//		uint16_t adcValue = adcBuffer[0];
-//		UART_Printf(&huart1, "ADC Value: %d\n", adcValue);
-		if (adcBuffer[0] >= 3500){
-			UART_Print(&huart1, "Up\n");
-		}
-		else{
-			UART_Print(&huart1, "Down\n");
-		}
+		UART_Printf(&huart1, "ADC buffer: [%d, %d]\n", adcBuffer[0], adcBuffer[1]);
+//		if (adcBuffer[0] >= 3500){
+//			UART_Print(&huart1, "Up\n");
+//		}
+//		else{
+//			UART_Print(&huart1, "Down\n");
+//		}
     }
 }
 
