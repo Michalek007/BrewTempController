@@ -52,6 +52,8 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 volatile uint32_t timerTicks = 0;
 volatile uint8_t timerFlag1000 = 0;
+
+uint32_t adcBuffer[1] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,7 +70,6 @@ void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint32_t adcBuffer[1] = {0};
 /* USER CODE END 0 */
 
 /**
@@ -105,7 +106,6 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim1);
-//  HAL_ADC_Start_IT(&hadc1);
   HAL_ADC_Start_DMA(&hadc1, adcBuffer, 1);
 
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
@@ -365,6 +365,7 @@ static void MX_GPIO_Init(void)
 
 void UART_Print(UART_HandleTypeDef *huart, const char* string){
 	HAL_UART_Transmit(huart, (uint8_t*)string, strlen(string), HAL_MAX_DELAY);
+//	HAL_UART_Transmit_DMA(huart, (uint8_t*)string, strlen(string));
 }
 
 void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...){
@@ -382,11 +383,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     if (htim->Instance == TIM1)
     {
     	timerTicks++;
-//		if (timerTicks % 500 == 0){
-////			HAL_ADC_Start_IT(&hadc1);
+		if (timerTicks % 500 == 0){
+//			HAL_ADC_Start_IT(&hadc1);
 //	    	uint16_t adcValue = adcBuffer[0];
 //	        UART_Printf(&huart1, "ADC Value: %d\n", adcValue);
-//		}
+			HAL_ADC_Start_DMA(&hadc1, adcBuffer, 1);
+		}
     	if (timerTicks % 1000 == 0){
     		timerFlag1000 = 1;
     		HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
@@ -394,19 +396,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
 }
 
-//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-//    if (hadc->Instance == ADC1) {
-////        uint16_t adcValue = HAL_ADC_GetValue(hadc);
-////    	uint16_t adcValue = adcBuffer[0];
-////        UART_Printf(&huart1, "ADC Value: %d\n", adcValue);
-//    }
-//}
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+    if (hadc->Instance == ADC1) {
+
+    }
+}
 
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
-//    	UART_Print(&huart1, "Out of window!");
-		uint16_t adcValue = adcBuffer[0];
-		UART_Printf(&huart1, "ADC Value: %d\n", adcValue);
+//		uint16_t adcValue = adcBuffer[0];
+//		UART_Printf(&huart1, "ADC Value: %d\n", adcValue);
+		if (adcBuffer[0] >= 3500){
+			UART_Print(&huart1, "Up\n");
+		}
+		else{
+			UART_Print(&huart1, "Down\n");
+		}
     }
 }
 
