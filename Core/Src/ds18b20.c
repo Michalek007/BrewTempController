@@ -43,11 +43,14 @@ static HAL_StatusTypeDef DS18B20_ReadScratchpad(const uint8_t* romCode, uint8_t*
 	for (uint8_t i = 0; i < DS18B20_SCRATCHPAD_SIZE; i++){
 		scratchpad[i] = OneWire_Read();
 	}
-	crc = OneWire_CRC(scratchpad, DS18B20_SCRATCHPAD_SIZE - 1);
-	if (scratchpad[DS18B20_SCRATCHPAD_SIZE - 1] == crc){
-		return HAL_OK;
+	if (DS18B20_CHECK_CRC){
+		crc = OneWire_CRC(scratchpad, DS18B20_SCRATCHPAD_SIZE - 1);
+		if (scratchpad[DS18B20_SCRATCHPAD_SIZE - 1] == crc){
+			return HAL_OK;
+		}
+		return HAL_ERROR;
 	}
-	return HAL_ERROR;
+	return HAL_OK;
 }
 
 HAL_StatusTypeDef DS18B20_ReadAddress(uint8_t* romCode)
@@ -60,12 +63,14 @@ HAL_StatusTypeDef DS18B20_ReadAddress(uint8_t* romCode)
 	for (uint8_t i = 0; i < DS18B20_ROM_CODE_SIZE; i++){
 		romCode[i] = OneWire_Read();
 	}
-	return HAL_OK;
-	crc = OneWire_CRC(romCode, DS18B20_ROM_CODE_SIZE - 1);
-	if (romCode[DS18B20_ROM_CODE_SIZE - 1] == crc){
-		return HAL_OK;
+	if (DS18B20_CHECK_CRC){
+		crc = OneWire_CRC(romCode, DS18B20_ROM_CODE_SIZE - 1);
+		if (romCode[DS18B20_ROM_CODE_SIZE - 1] == crc){
+			return HAL_OK;
+		}
+		return HAL_ERROR;
 	}
-	return HAL_ERROR;
+	return HAL_OK;
 }
 
 HAL_StatusTypeDef DS18B20_StartMeasure(const uint8_t* romCode)

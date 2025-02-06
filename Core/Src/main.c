@@ -60,6 +60,8 @@ uint16_t adcBuffer[2] = {0};
 
 uint8_t readTempFlag = 0;
 //uint8_t romeCode1[] =  {41, 96, 121, 139, 13, 0, 0, 30};
+//uint8_t romeCode2[] =  {41, 42, 71, 138, 178, 35, 6, 167};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -133,7 +135,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  if (timerFlag500){
 		  timerFlag500 = 0;
-		  if (!adc){
+		  if (!adcFlag){
 			  adcFlag = 1;
 			  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, 2);
 		  }
@@ -146,9 +148,7 @@ int main(void)
 		  uint32_t minutes = totalSeconds / 60;
 		  uint32_t seconds = totalSeconds % 60;
 		  UART_Printf(&huart1, "%02d:%02d\n", minutes, seconds);
-	  }
-	  if (timerFlag2000){
-		  timerFlag2000 = 0;
+
 		  if (readTempFlag){
 			  readTempFlag = 0;
 			  int16_t temp = DS18B20_GetTemp_Int(NULL);
@@ -157,7 +157,7 @@ int main(void)
 			  }
 			  UART_Printf(&huart1, "T: %d\n", temp);
 		  }
-		  else{
+		  if (!readTempFlag){
 			  check = DS18B20_StartMeasure(NULL);
 			  if (check != HAL_OK){
 				  UART_Print(&huart1,  "Error occurred!");
@@ -166,6 +166,9 @@ int main(void)
 				  readTempFlag = 1;
 			  }
 		  }
+	  }
+	  if (timerFlag2000){
+		  timerFlag2000 = 0;
 	  }
   }
   /* USER CODE END 3 */

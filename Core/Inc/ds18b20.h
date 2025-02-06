@@ -11,6 +11,7 @@
 #include "main.h"
 
 #define DS18B20_ROM_CODE_SIZE	8
+#define DS18B20_CHECK_CRC	0
 
 HAL_StatusTypeDef DS18B20_ReadAddress(uint8_t* romCode);
 

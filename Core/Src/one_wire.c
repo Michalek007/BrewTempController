@@ -72,10 +72,7 @@ uint8_t OneWire_Read(void)
 {
 	uint8_t value = 0;
 	for (uint8_t i=0; i<8; i++){
-		value >>= 1;
-		if (ReadBit()){
-		  value |= 0x80;
-		}
+		value |= (ReadBit() << i);
 	}
 	return value;
 }
