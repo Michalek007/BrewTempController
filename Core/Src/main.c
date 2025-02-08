@@ -20,6 +20,7 @@
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -30,6 +31,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "ds18b20.h"
+#include "ssd1306.h"
+#include "ssd1306_fonts.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,9 +61,14 @@ volatile uint8_t timerFlag2000 = 0;
 volatile uint8_t adcFlag = 0;
 uint16_t adcBuffer[2] = {0};
 
-uint8_t readTempFlag = 0;
+volatile uint8_t readTempFlag = 0;
 //uint8_t romeCode1[] =  {41, 96, 121, 139, 13, 0, 0, 30};
 //uint8_t romeCode2[] =  {41, 42, 71, 138, 178, 35, 6, 167};
+
+volatile uint8_t buttonFlag = 0;
+
+volatile uint8_t choosingEnabled = 0;
+volatile uint8_t choosingTicks = 0;
 
 /* USER CODE END PV */
 
@@ -69,6 +77,8 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void UART_Print(UART_HandleTypeDef *huart, const char* string);
 void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...);
+void SSD1306_Print(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string);
+void SSD1306_Printf(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, const char* string, ...);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -108,8 +118,10 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   MX_USART2_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim1);
+  ssd1306_Init();
 
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
   UART_Print(&huart1,  "Initialization done!");
@@ -128,6 +140,8 @@ int main(void)
 	  HAL_UART_Transmit(&huart1, romCode, DS18B20_ROM_CODE_SIZE, 100);
 	  HAL_UART_Transmit(&huart1, txNull, 5, 100);
   }
+  ssd1306_Fill(Black);
+  ssd1306_UpdateScreen();
   while (1)
   {
     /* USER CODE END WHILE */
@@ -148,6 +162,7 @@ int main(void)
 		  uint32_t minutes = totalSeconds / 60;
 		  uint32_t seconds = totalSeconds % 60;
 		  UART_Printf(&huart1, "%02d:%02d\n", minutes, seconds);
+		  SSD1306_Printf(70, 0, White, "%02ld:%02ld\n", minutes, seconds);
 
 		  if (readTempFlag){
 			  readTempFlag = 0;
@@ -156,6 +171,7 @@ int main(void)
 				  UART_Print(&huart1, "Error occurred during reading temperature! ");
 			  }
 			  UART_Printf(&huart1, "T: %d\n", temp);
+			  SSD1306_Printf(0, 0, White, "T: %d\n", temp);
 		  }
 		  if (!readTempFlag){
 			  check = DS18B20_StartMeasure(NULL);
@@ -166,9 +182,27 @@ int main(void)
 				  readTempFlag = 1;
 			  }
 		  }
+		  if (choosingEnabled){
+			  if (choosingTicks % 2 == 0){
+				  SSD1306_Print(52, 32, White, "TEST");
+			  }
+			  else{
+				  SSD1306_Print(52, 32, Black, "TEST");
+			  }
+
+			  choosingTicks++;
+			  if (choosingTicks > 4){
+				  choosingEnabled = 0;
+				  choosingTicks = 0;
+			  }
+		  }
 	  }
 	  if (timerFlag2000){
 		  timerFlag2000 = 0;
+	  }
+	  if (buttonFlag){
+		  buttonFlag = 0;
+		  choosingEnabled = 1;
 	  }
   }
   /* USER CODE END 3 */
@@ -235,6 +269,22 @@ void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...){
 	va_end(argp);
 }
 
+void SSD1306_Print(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string){
+	  ssd1306_SetCursor(cursorX, cursorY);
+	  ssd1306_WriteString(string, Font_6x8, color);
+	  ssd1306_UpdateScreen();
+}
+
+void SSD1306_Printf(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, const char* string, ...){
+	va_list argp;
+	va_start(argp, string);
+	char stringf[MAX_PRINTF_LEN];
+	if (vsprintf(stringf, string, argp) > 0){
+		SSD1306_Print(cursorX, cursorY, color, stringf);
+	}
+	va_end(argp);
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM1) {
@@ -260,7 +310,26 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
 		UART_Printf(&huart1, "ADC buffer: [%d, %d]\n", adcBuffer[0], adcBuffer[1]);
+	    if (adcBuffer[0] <= 500){
+	    	SSD1306_Print(0, 32, White, "Down ");
+	    }
+	    else if (adcBuffer[0] >= 3500){
+	    	SSD1306_Print(0, 32, White, "Up   ");
+	    }
+	    else if (adcBuffer[1] >= 3500){
+	    	SSD1306_Print(0, 32, White, "Left ");
+	    }
+	    else if (adcBuffer[1] <= 500){
+	    	SSD1306_Print(0, 32, White, "Right");
+	    }
     }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if (GPIO_Pin == BT1_Pin && !buttonFlag){
+		buttonFlag = 1;
+		UART_Print(&huart1, "Button 1 pressed!");
+	}
 }
 
 /* USER CODE END 4 */
