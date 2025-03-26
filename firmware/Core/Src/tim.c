@@ -21,7 +21,11 @@
 #include "tim.h"
 
 /* USER CODE BEGIN 0 */
-
+static volatile uint32_t timerTicks = 0;
+volatile uint8_t timerFlag250 = 0;
+volatile uint8_t timerFlag500 = 0;
+volatile uint8_t timerFlag1000 = 0;
+volatile uint8_t timerFlag2000 = 0;
 /* USER CODE END 0 */
 
 TIM_HandleTypeDef htim1;
@@ -108,5 +112,26 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM1) {
+    	timerTicks++;
+		if (timerTicks % 250 == 0){
+			timerFlag250 = 1;
+		}
+		if (timerTicks % 500 == 0){
+			timerFlag500 = 1;
+		}
+    	if (timerTicks % 1000 == 0){
+    		timerFlag1000 = 1;
+		}
+    	if (timerTicks % 2000 == 0){
+    		timerFlag2000 = 1;
+		}
+    }
+}
 
+uint32_t TIM1_GetTicks(void){
+	return timerTicks;
+}
 /* USER CODE END 1 */

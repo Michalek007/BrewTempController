@@ -32,6 +32,7 @@
 #include "ssd1306_fonts.h"
 #include "menu.h"
 #include "beer.h"
+#include "timer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,12 +51,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint32_t timerTicks = 0;
-volatile uint8_t timerFlag250 = 0;
-volatile uint8_t timerFlag500 = 0;
-volatile uint8_t timerFlag1000 = 0;
-volatile uint8_t timerFlag2000 = 0;
-
 volatile uint8_t adcFlag = 0;
 uint16_t adcBuffer[2] = {0};
 
@@ -176,7 +171,7 @@ int main(void)
 		  }
 		  if (choosingEnabled){
 			  MENU_DisplayChosenOption();
-			  if (timerTicks - choosingTicks >= 5000){
+			  if (TIM1_GetTicks() - choosingTicks >= 5000){
 				  choosingEnabled = 0;
 				  MENU_DisplayOptions();
 			  }
@@ -184,31 +179,9 @@ int main(void)
 	  }
 	  if (timerFlag1000){
 		  timerFlag1000 = 0;
+		  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		  if (menuConfig.window == MENU_MAIN){
-			  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-
-			  if (enableTimer){
-				  uint32_t baseSeconds = currentBeerRest->minutes * 60;
-				  uint32_t totalSeconds =  (timerTicks - beerTimerTicks) / 1000;
-				  if (baseSeconds <= totalSeconds){
-					  uint8_t done = BEER_NextRest();
-					  MENU_DisplayOptions();
-					  if (done){
-						  enableTimer = 0;
-						  SSD1306_Print(98, 0, White, "00:00");
-						  SSD1306_Print(0, 32, White, "All rests done!");
-						  continue;
-					  }
-					  beerTimerTicks = timerTicks;
-					  baseSeconds = currentBeerRest->minutes * 60;
-					  totalSeconds =  (timerTicks - beerTimerTicks) / 1000;
-				  }
-				  totalSeconds = baseSeconds - totalSeconds;
-				  uint32_t minutes = totalSeconds / 60;
-				  uint32_t seconds = totalSeconds % 60;
-				  SSD1306_Printf(98, 0, White, "%02ld:%02ld", minutes, seconds);
-			  }
-
+			  Timer_Display();
 			  if (readTempFlag){
 				  readTempFlag = 0;
 				  int16_t temp = DS18B20_GetTemp_Int(NULL);
@@ -235,22 +208,20 @@ int main(void)
 	  if (buttonFlag){
 		  buttonFlag = 0;
 		  choosingEnabled = 1;
-		  choosingTicks = timerTicks;
+		  choosingTicks = TIM1_GetTicks();
 	  }
 	  if (buttonChosenFlag){
 		  buttonChosenFlag = 0;
 		  choosingEnabled = 0;
 		  UART_Print("buttonChosenFlag!");
 		  if (menuConfig.option->value == 1 && menuConfig.window == MENU_MAIN){
-			  enableTimer = !enableTimer;
-			  beerTimerTicks = timerTicks - beerTimerTicks;
+			  Timer_Toggle();
 			  MENU_DisplayOptions();
 			  continue;
 		  }
 		  else if (menuConfig.option->value == 3 && menuConfig.window == MENU_SETTINGS){
 			  BEER_RestartRest();
-			  enableTimer = 1;
-			  beerTimerTicks = timerTicks;
+			  Timer_Start();
 		  }
 		  MENU_SetConfigWindow();
 		  ssd1306_Fill(Black);
@@ -306,25 +277,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    if (htim->Instance == TIM1) {
-    	timerTicks++;
-		if (timerTicks % 250 == 0){
-			timerFlag250 = 1;
-		}
-		if (timerTicks % 500 == 0){
-			timerFlag500 = 1;
-		}
-    	if (timerTicks % 1000 == 0){
-    		timerFlag1000 = 1;
-		}
-    	if (timerTicks % 2000 == 0){
-    		timerFlag2000 = 1;
-		}
-    }
-}
-
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
     	adcFlag = 0;

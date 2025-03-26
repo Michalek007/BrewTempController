@@ -41,7 +41,12 @@ extern TIM_HandleTypeDef htim1;
 void MX_TIM1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+extern volatile uint8_t timerFlag250;
+extern volatile uint8_t timerFlag500;
+extern volatile uint8_t timerFlag1000;
+extern volatile uint8_t timerFlag2000;
 
+uint32_t TIM1_GetTicks(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
