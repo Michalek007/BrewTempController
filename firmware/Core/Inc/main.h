@@ -65,6 +65,12 @@ void Error_Handler(void);
 #define BT2_Pin GPIO_PIN_15
 #define BT2_GPIO_Port GPIOB
 #define BT2_EXTI_IRQn EXTI15_10_IRQn
+#define BUZZER_Pin GPIO_PIN_15
+#define BUZZER_GPIO_Port GPIOA
+#define MOTOR_Pin GPIO_PIN_3
+#define MOTOR_GPIO_Port GPIOB
+#define HEATER_Pin GPIO_PIN_4
+#define HEATER_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

@@ -9,9 +9,9 @@
 
 #define BEER_RESTS 3
 
-BEER_Rest beerRest1 = {.name="Rest1", .tempMin=50, .tempMax=60, .minutes=1};
-BEER_Rest beerRest2 = {.name="Rest2", .tempMin=68, .tempMax=72, .minutes=1};
-BEER_Rest beerRest3 = {.name="Rest3", .tempMin=74, .tempMax=76, .minutes=1};
+BEER_Rest beerRest1 = {.name="Rest1", .tempMin=26, .tempMax=28, .minutes=1};
+BEER_Rest beerRest2 = {.name="Rest2", .tempMin=24, .tempMax=26, .minutes=1};
+BEER_Rest beerRest3 = {.name="Rest3", .tempMin=18, .tempMax=22, .minutes=1};
 
 
 BEER_Rest* currentBeerRest = &beerRest1;

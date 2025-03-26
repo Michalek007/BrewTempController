@@ -202,11 +202,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     else if (htim->Instance == TIM2){
         if (HAL_GPIO_ReadPin(BT1_GPIO_Port, BT1_Pin) == GPIO_PIN_RESET) {
             bt1Flag = 1;
-            UART_Print("Button 1 pressed!");
         }
         else if (HAL_GPIO_ReadPin(BT2_GPIO_Port, BT2_Pin) == GPIO_PIN_RESET) {
             bt2Flag = 1;
-            UART_Print("Button 2 pressed!");
         }
         HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
         HAL_TIM_Base_Stop_IT(&htim2);

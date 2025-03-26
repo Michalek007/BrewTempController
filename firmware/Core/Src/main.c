@@ -53,8 +53,13 @@ volatile uint8_t readTempFlag = 0;
 //uint8_t romeCode1[] =  {41, 96, 121, 139, 13, 0, 0, 30};
 //uint8_t romeCode2[] =  {41, 42, 71, 138, 178, 35, 6, 167};
 
+volatile uint8_t criticalMinTempFlag = 0;
+volatile uint8_t criticalMaxTempFlag = 0;
+
 volatile uint8_t choosingEnabled = 0;
 volatile uint32_t choosingTimerTicks = 0;
+
+volatile uint8_t doneFlag = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,6 +109,7 @@ int main(void)
   ssd1306_Init();
 
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(MOTOR_GPIO_Port, MOTOR_Pin, GPIO_PIN_SET);
   UART_Print("Initialization done!");
   /* USER CODE END 2 */
 
@@ -129,6 +135,9 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  if (timerFlag250){
 		  timerFlag250 = 0;
+		  if (criticalMaxTempFlag){
+			  HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
+		  }
 	  }
 	  if (timerFlag500){
 		  timerFlag500 = 0;
@@ -137,6 +146,9 @@ int main(void)
 				  choosingEnabled = 0;
 				  MENU_DisplayOptions();
 			  }
+		  }
+		  if (criticalMinTempFlag){
+			  HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
 		  }
 	  }
 	  if (timerFlag1000){
@@ -152,6 +164,8 @@ int main(void)
 					  MENU_DisplayOptions();
 					  if (done){
 						  Timer_Stop();
+						  HAL_GPIO_WritePin(HEATER_GPIO_Port, HEATER_Pin, GPIO_PIN_RESET);
+						  doneFlag = 1;
 						  MENU_DisplayEndMessage();
 						  continue;
 					  }
@@ -173,6 +187,32 @@ int main(void)
 				  }
 				  UART_Printf("T: %d\n", temp);
 				  MENU_DisplayTemperature(temp);
+
+				  if (doneFlag){
+					  continue;
+				  }
+
+				  int16_t tempAverage = (currentBeerRest->tempMin + currentBeerRest->tempMax) / 2;
+				  if (temp <= tempAverage){
+					  if (temp < currentBeerRest->tempMin){
+						  criticalMinTempFlag = 1;
+					  }
+					  else if (criticalMinTempFlag){
+						  criticalMinTempFlag = 0;
+						  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+					  }
+					  HAL_GPIO_WritePin(HEATER_GPIO_Port, HEATER_Pin, GPIO_PIN_SET);
+				  }
+				  else{
+					  if (temp > currentBeerRest->tempMax){
+						  criticalMaxTempFlag = 1;
+					  }
+					  else if (criticalMaxTempFlag){
+						  criticalMaxTempFlag = 0;
+						  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+					  }
+					  HAL_GPIO_WritePin(HEATER_GPIO_Port, HEATER_Pin, GPIO_PIN_RESET);
+				  }
 			  }
 			  if (!readTempFlag){
 				  check = DS18B20_StartMeasure(NULL);
