@@ -18,8 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "adc.h"
-#include "dma.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
@@ -51,20 +49,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint8_t adcFlag = 0;
-uint16_t adcBuffer[2] = {0};
-
 volatile uint8_t readTempFlag = 0;
 //uint8_t romeCode1[] =  {41, 96, 121, 139, 13, 0, 0, 30};
 //uint8_t romeCode2[] =  {41, 42, 71, 138, 178, 35, 6, 167};
 
-volatile uint8_t buttonFlag = 0;
-volatile uint8_t buttonChosenFlag = 0;
-
 volatile uint8_t choosingEnabled = 0;
-volatile uint32_t choosingTicks = 0;
-
-volatile uint8_t joystickFlag = 0;
+volatile uint32_t choosingTimerTicks = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,12 +94,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_TIM1_Init();
   MX_USART1_UART_Init();
-  MX_ADC1_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim1);
   ssd1306_Init();
@@ -140,35 +129,11 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  if (timerFlag250){
 		  timerFlag250 = 0;
-		  if (!adcFlag){
-			  adcFlag = 1;
-			  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, 2);
-		  }
 	  }
 	  if (timerFlag500){
 		  timerFlag500 = 0;
-		  if (joystickFlag){
-			  joystickFlag = 0;
-			  if (adcBuffer[0] <= 500){
-				  SSD1306_Print(0, 32, White, "Down ");
-				  menuDirection = MENU_DOWN;
-			  }
-			  else if (adcBuffer[0] >= 3500){
-				  SSD1306_Print(0, 32, White, "Up   ");
-				  menuDirection = MENU_UP;
-			  }
-			  else if (adcBuffer[1] >= 3500){
-				  SSD1306_Print(0, 32, White, "Left ");
-				  menuDirection = MENU_LEFT;
-			  }
-			  else if (adcBuffer[1] <= 500){
-				  SSD1306_Print(0, 32, White, "Right");
-				  menuDirection = MENU_RIGHT;
-			  }
-		  }
 		  if (choosingEnabled){
-			  MENU_DisplayChosenOption();
-			  if (TIM1_GetTicks() - choosingTicks >= 5000){
+			  if (TIM1_GetTicks() - choosingTimerTicks >= 10000){
 				  choosingEnabled = 0;
 				  MENU_DisplayOptions();
 			  }
@@ -223,27 +188,28 @@ int main(void)
 	  if (timerFlag2000){
 		  timerFlag2000 = 0;
 	  }
-	  if (buttonFlag){
-		  buttonFlag = 0;
-		  choosingEnabled = 1;
-		  choosingTicks = TIM1_GetTicks();
+	  if (bt1Flag){
+		  bt1Flag = 0;
+		  if (choosingEnabled){
+			  choosingEnabled = 0;
+			  MENU_SelectedOptionHandler();
+		  }
+		  else{
+			  choosingEnabled = 1;
+			  choosingTimerTicks = TIM1_GetTicks();
+			  MENU_HighlightSelectedOption();
+		  }
 	  }
-	  if (buttonChosenFlag){
-		  buttonChosenFlag = 0;
-		  choosingEnabled = 0;
-		  UART_Print("buttonChosenFlag!");
-		  if (menuConfig.option->value == 1 && menuConfig.window == MENU_MAIN){
-			  Timer_Toggle();
-			  MENU_DisplayOptions();
-			  continue;
+	  if (bt2Flag){
+		  bt2Flag = 0;
+		  if (choosingEnabled){
+			  MENU_SetNextOption();
 		  }
-		  else if (menuConfig.option->value == 3 && menuConfig.window == MENU_SETTINGS){
-			  BEER_RestartRest();
-			  Timer_Start();
+		  else{
+			  choosingEnabled = 1;
 		  }
-		  MENU_SetConfigWindow();
-		  ssd1306_Fill(Black);
-		  MENU_DisplayOptions();
+		  choosingTimerTicks = TIM1_GetTicks();
+		  MENU_HighlightSelectedOption();
 	  }
   }
   /* USER CODE END 3 */
@@ -295,31 +261,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-    if (hadc->Instance == ADC1) {
-    	adcFlag = 0;
-    }
-}
-
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc) {
-    if (hadc->Instance == ADC1) {
-		UART_Printf("ADC buffer: [%d, %d]\n", adcBuffer[0], adcBuffer[1]);
-		joystickFlag = 1;
-    }
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if (GPIO_Pin == BT1_Pin){
-		if (!buttonFlag && !choosingEnabled){
-			buttonFlag = 1;
-		}
-		if (!buttonChosenFlag && choosingEnabled){
-			buttonChosenFlag = 1;
-		}
-		UART_Print("Button 1 pressed!");
-	}
-}
-
 /* USER CODE END 4 */
 
 /**

@@ -5,10 +5,12 @@
  *      Author: Michał
  */
 #include <stdio.h>
+#include <string.h>
 #include "menu.h"
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 #include "beer.h"
+#include "timer.h"
 
 #define DISPLAY_WIDTH	128
 #define DISPLAY_HEIGHT	64
@@ -16,7 +18,7 @@
 #define FONT_HEIGHT		8
 
 #define BOTTOM_LEFT_CORNER_X	0
-#define BOTTOM_RIGHT_CORNER_X	DISPLAY_WIDTH-FONT_WIDTH*4
+#define BOTTOM_RIGHT_CORNER_X	DISPLAY_WIDTH-FONT_WIDTH*5
 #define BOTTOM_Y				DISPLAY_HEIGHT-FONT_HEIGHT
 
 #define TOP_LEFT_X	0
@@ -24,15 +26,22 @@
 #define TOP_RIGHT_X 84
 #define TOP_Y		0
 
+#define MAIN_OPTIONS_COUNT 2
+#define SETTINGS_OPTIONS_COUNT 1
+
 static MENU_Option optionMain0 = {.x=BOTTOM_LEFT_CORNER_X, .y=BOTTOM_Y, .value=0, .string="Settings"};
-static MENU_Option optionMain1 = {.x=BOTTOM_RIGHT_CORNER_X, .y=BOTTOM_Y, .value=1, .string="Stop"};
+
+static uint8_t resume = 0;
+static MENU_Option optionMain1 = {.x=BOTTOM_RIGHT_CORNER_X, .y=BOTTOM_Y, .value=1, .string=" Stop"};
 
 
-static MENU_Option optionSettings3 = {.x=BOTTOM_RIGHT_CORNER_X-6, .y=BOTTOM_Y, .value=3, .string="Start"};
+static MENU_Option optionSettings0 = {.x=BOTTOM_RIGHT_CORNER_X, .y=BOTTOM_Y, .value=0, .string="Start"};
+
+static MENU_Option* mainOptions[MAIN_OPTIONS_COUNT] = {&optionMain0, &optionMain1};
+static MENU_Option* settingsOptions[SETTINGS_OPTIONS_COUNT] = {&optionSettings0};
 
 
-MENU_Config menuConfig = {.lastOption=&optionSettings3, .option=&optionSettings3, .window=MENU_SETTINGS};
-MENU_Direction menuDirection = MENU_LEFT;
+MENU_Config menuConfig = {.lastOption=NULL, .option=&optionSettings0, .window=MENU_SETTINGS};
 
 
 void MENU_DisplayBeerRests(void){
@@ -67,13 +76,16 @@ void MENU_DisplayOptions(void){
 		BEER_GetTempString(currentBeerRest, temp);
 		SSD1306_PrintBuffer(TOP_LEFT_X+42, TOP_Y, White,  temp);
 
-		SSD1306_PrintBuffer(optionMain0.x, optionMain0.y, White, optionMain0.string);
-		SSD1306_PrintBuffer(optionMain1.x, optionMain1.y, White, optionMain1.string);
+		for (uint8_t i=0;i<MAIN_OPTIONS_COUNT;++i){
+			SSD1306_PrintBuffer(mainOptions[i]->x, mainOptions[i]->y, White, mainOptions[i]->string);
+		}
 		ssd1306_UpdateScreen();
 		break;
 	case MENU_SETTINGS:
 		MENU_DisplayBeerRests();
-		SSD1306_PrintBuffer(optionSettings3.x, optionSettings3.y, White, optionSettings3.string);
+		for (uint8_t i=0;i<SETTINGS_OPTIONS_COUNT;++i){
+			SSD1306_PrintBuffer(settingsOptions[i]->x, settingsOptions[i]->y, White, settingsOptions[i]->string);
+		}
 		ssd1306_UpdateScreen();
 		break;
 	case MENU_DETAILS:
@@ -81,29 +93,29 @@ void MENU_DisplayOptions(void){
 	}
 }
 
-void MENU_DisplayChosenOption(void){
+void MENU_HighlightSelectedOption(void){
+	SSD1306_PrintBuffer(menuConfig.option->x, menuConfig.option->y, Black, menuConfig.option->string);
+	if (menuConfig.lastOption != NULL){
+		SSD1306_PrintBuffer(menuConfig.lastOption->x,menuConfig.lastOption->y, White, menuConfig.lastOption->string);
+	}
+    ssd1306_UpdateScreen();
+}
+
+void MENU_SetNextOption(void){
+	uint8_t currentOptionValue = menuConfig.option->value;
+	uint8_t nextOptionValue = currentOptionValue + 1 < MAIN_OPTIONS_COUNT ? currentOptionValue + 1 : 0;
 	switch (menuConfig.window){
 	case MENU_MAIN:
-		if (menuDirection == MENU_LEFT){
-			menuConfig.option = &optionMain0;
-			menuConfig.lastOption = &optionMain1;
-		}
-		else if (menuDirection == MENU_RIGHT){
-			menuConfig.option = &optionMain1;
-			menuConfig.lastOption = &optionMain0;
-		}
+		menuConfig.option = mainOptions[nextOptionValue];
+		menuConfig.lastOption = mainOptions[currentOptionValue];
 		break;
 	case MENU_SETTINGS:
-		menuConfig.option = &optionSettings3;
-		menuConfig.lastOption = &optionSettings3;
-	    ssd1306_UpdateScreen();
+		menuConfig.option = &optionSettings0;
+		menuConfig.lastOption = NULL;
 		break;
 	case MENU_DETAILS:
 		break;
 	}
-	SSD1306_PrintBuffer(menuConfig.option->x, menuConfig.option->y, Black, menuConfig.option->string);
-	SSD1306_PrintBuffer(menuConfig.lastOption->x,menuConfig.lastOption->y, White, menuConfig.lastOption->string);
-    ssd1306_UpdateScreen();
 }
 
 void MENU_SetConfigWindow(void){
@@ -114,7 +126,7 @@ void MENU_SetConfigWindow(void){
 		}
 		break;
 	case MENU_SETTINGS:
-		if (menuConfig.option->value == 3){
+		if (menuConfig.option->value == 0){
 			menuConfig.window = MENU_MAIN;
 		}
 		break;
@@ -126,3 +138,27 @@ void MENU_SetConfigWindow(void){
 	}
 }
 
+void MENU_SelectedOptionHandler(void){
+	  if (menuConfig.option->value == 1 && menuConfig.window == MENU_MAIN){
+		  Timer_Toggle();
+		  if (menuConfig.option->value == 1){
+			  if (resume){
+				  strcpy(menuConfig.option->string, " Stop");
+			  }
+			  else{
+				  strcpy(menuConfig.option->string, "Start");
+			  }
+			  resume = !resume;
+		  }
+		MENU_DisplayOptions();
+		return;
+	  }
+	  else if (menuConfig.option->value == 0 && menuConfig.window == MENU_SETTINGS){
+		  BEER_RestartRest();
+		  Timer_Start();
+	  }
+	  MENU_SetConfigWindow();
+	  ssd1306_Fill(Black);
+	  MENU_SetNextOption();
+	  MENU_DisplayOptions();
+}
