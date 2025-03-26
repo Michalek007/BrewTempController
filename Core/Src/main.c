@@ -33,16 +33,17 @@
 #include "ds18b20.h"
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
+#include "menu.h"
+#include "beer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define MAX_PRINTF_LEN 100
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define MAX_PRINTF_LEN 100
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,6 +55,7 @@
 
 /* USER CODE BEGIN PV */
 volatile uint32_t timerTicks = 0;
+volatile uint8_t timerFlag250 = 0;
 volatile uint8_t timerFlag500 = 0;
 volatile uint8_t timerFlag1000 = 0;
 volatile uint8_t timerFlag2000 = 0;
@@ -66,10 +68,15 @@ volatile uint8_t readTempFlag = 0;
 //uint8_t romeCode2[] =  {41, 42, 71, 138, 178, 35, 6, 167};
 
 volatile uint8_t buttonFlag = 0;
+volatile uint8_t buttonChosenFlag = 0;
 
 volatile uint8_t choosingEnabled = 0;
-volatile uint8_t choosingTicks = 0;
+volatile uint32_t choosingTicks = 0;
 
+volatile uint8_t joystickFlag = 0;
+
+volatile uint32_t beerTimerTicks = 0;
+volatile uint32_t enableTimer = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -141,59 +148,92 @@ int main(void)
 	  HAL_UART_Transmit(&huart1, txNull, 5, 100);
   }
   ssd1306_Fill(Black);
-  ssd1306_UpdateScreen();
+  MENU_DisplayOptions();
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (timerFlag500){
-		  timerFlag500 = 0;
+	  if (timerFlag250){
+		  timerFlag250 = 0;
 		  if (!adcFlag){
 			  adcFlag = 1;
 			  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, 2);
 		  }
 	  }
-	  if (timerFlag1000){
-		  timerFlag1000 = 0;
-//		  UART_Printf(&huart1, "Timer ticks: %d\n", timerTicks);
-  		  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-		  uint32_t totalSeconds = timerTicks / 1000;
-		  uint32_t minutes = totalSeconds / 60;
-		  uint32_t seconds = totalSeconds % 60;
-		  UART_Printf(&huart1, "%02d:%02d\n", minutes, seconds);
-		  SSD1306_Printf(70, 0, White, "%02ld:%02ld\n", minutes, seconds);
-
-		  if (readTempFlag){
-			  readTempFlag = 0;
-			  int16_t temp = DS18B20_GetTemp_Int(NULL);
-			  if (temp <= -200){
-				  UART_Print(&huart1, "Error occurred during reading temperature! ");
+	  if (timerFlag500){
+		  timerFlag500 = 0;
+		  if (joystickFlag){
+			  joystickFlag = 0;
+			  if (adcBuffer[0] <= 500){
+				  SSD1306_Print(0, 32, White, "Down ");
+				  menuDirection = MENU_DOWN;
 			  }
-			  UART_Printf(&huart1, "T: %d\n", temp);
-			  SSD1306_Printf(0, 0, White, "T: %d\n", temp);
-		  }
-		  if (!readTempFlag){
-			  check = DS18B20_StartMeasure(NULL);
-			  if (check != HAL_OK){
-				  UART_Print(&huart1,  "Error occurred!");
+			  else if (adcBuffer[0] >= 3500){
+				  SSD1306_Print(0, 32, White, "Up   ");
+				  menuDirection = MENU_UP;
 			  }
-			  else{
-				  readTempFlag = 1;
+			  else if (adcBuffer[1] >= 3500){
+				  SSD1306_Print(0, 32, White, "Left ");
+				  menuDirection = MENU_LEFT;
+			  }
+			  else if (adcBuffer[1] <= 500){
+				  SSD1306_Print(0, 32, White, "Right");
+				  menuDirection = MENU_RIGHT;
 			  }
 		  }
 		  if (choosingEnabled){
-			  if (choosingTicks % 2 == 0){
-				  SSD1306_Print(52, 32, White, "TEST");
+			  MENU_DisplayChosenOption();
+			  if (timerTicks - choosingTicks >= 5000){
+				  choosingEnabled = 0;
+				  MENU_DisplayOptions();
 			  }
-			  else{
-				  SSD1306_Print(52, 32, Black, "TEST");
+		  }
+	  }
+	  if (timerFlag1000){
+		  timerFlag1000 = 0;
+		  if (menuConfig.window == MENU_MAIN){
+			  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+
+			  if (enableTimer){
+				  uint32_t baseSeconds = currentBeerRest->minutes * 60;
+				  uint32_t totalSeconds =  (timerTicks - beerTimerTicks) / 1000;
+				  if (baseSeconds <= totalSeconds){
+					  uint8_t done = BEER_NextRest();
+					  MENU_DisplayOptions();
+					  if (done){
+						  enableTimer = 0;
+						  SSD1306_Print(98, 0, White, "00:00");
+						  SSD1306_Print(0, 32, White, "All rests done!");
+						  continue;
+					  }
+					  beerTimerTicks = timerTicks;
+					  baseSeconds = currentBeerRest->minutes * 60;
+					  totalSeconds =  (timerTicks - beerTimerTicks) / 1000;
+				  }
+				  totalSeconds = baseSeconds - totalSeconds;
+				  uint32_t minutes = totalSeconds / 60;
+				  uint32_t seconds = totalSeconds % 60;
+				  SSD1306_Printf(98, 0, White, "%02ld:%02ld", minutes, seconds);
 			  }
 
-			  choosingTicks++;
-			  if (choosingTicks > 4){
-				  choosingEnabled = 0;
-				  choosingTicks = 0;
+			  if (readTempFlag){
+				  readTempFlag = 0;
+				  int16_t temp = DS18B20_GetTemp_Int(NULL);
+				  if (temp <= -200){
+					  UART_Print(&huart1, "Error occurred during reading temperature! ");
+				  }
+				  UART_Printf(&huart1, "T: %d\n", temp);
+				  SSD1306_Printf(0, 11, White, "T: %d\n", temp);
+			  }
+			  if (!readTempFlag){
+				  check = DS18B20_StartMeasure(NULL);
+				  if (check != HAL_OK){
+					  UART_Print(&huart1,  "Error occurred!");
+				  }
+				  else{
+					  readTempFlag = 1;
+				  }
 			  }
 		  }
 	  }
@@ -203,6 +243,26 @@ int main(void)
 	  if (buttonFlag){
 		  buttonFlag = 0;
 		  choosingEnabled = 1;
+		  choosingTicks = timerTicks;
+	  }
+	  if (buttonChosenFlag){
+		  buttonChosenFlag = 0;
+		  choosingEnabled = 0;
+		  UART_Print(&huart1,  "buttonChosenFlag!");
+		  if (menuConfig.option->value == 1 && menuConfig.window == MENU_MAIN){
+			  enableTimer = !enableTimer;
+			  beerTimerTicks = timerTicks - beerTimerTicks;
+			  MENU_DisplayOptions();
+			  continue;
+		  }
+		  else if (menuConfig.option->value == 3 && menuConfig.window == MENU_SETTINGS){
+			  BEER_RestartRest();
+			  enableTimer = 1;
+			  beerTimerTicks = timerTicks;
+		  }
+		  MENU_SetConfigWindow();
+		  ssd1306_Fill(Black);
+		  MENU_DisplayOptions();
 	  }
   }
   /* USER CODE END 3 */
@@ -289,6 +349,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM1) {
     	timerTicks++;
+		if (timerTicks % 250 == 0){
+			timerFlag250 = 1;
+		}
 		if (timerTicks % 500 == 0){
 			timerFlag500 = 1;
 		}
@@ -310,24 +373,18 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
 		UART_Printf(&huart1, "ADC buffer: [%d, %d]\n", adcBuffer[0], adcBuffer[1]);
-	    if (adcBuffer[0] <= 500){
-	    	SSD1306_Print(0, 32, White, "Down ");
-	    }
-	    else if (adcBuffer[0] >= 3500){
-	    	SSD1306_Print(0, 32, White, "Up   ");
-	    }
-	    else if (adcBuffer[1] >= 3500){
-	    	SSD1306_Print(0, 32, White, "Left ");
-	    }
-	    else if (adcBuffer[1] <= 500){
-	    	SSD1306_Print(0, 32, White, "Right");
-	    }
+		joystickFlag = 1;
     }
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if (GPIO_Pin == BT1_Pin && !buttonFlag){
-		buttonFlag = 1;
+	if (GPIO_Pin == BT1_Pin){
+		if (!buttonFlag && !choosingEnabled){
+			buttonFlag = 1;
+		}
+		if (!buttonChosenFlag && choosingEnabled){
+			buttonChosenFlag = 1;
+		}
 		UART_Print(&huart1, "Button 1 pressed!");
 	}
 }
