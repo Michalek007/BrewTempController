@@ -1,7 +1,10 @@
 #include "ssd1306.h"
+#include "ssd1306_fonts.h"
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>  // For memcpy
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 #if defined(SSD1306_USE_I2C)
 
@@ -588,4 +591,27 @@ void ssd1306_SetDisplayOn(const uint8_t on) {
 
 uint8_t ssd1306_GetDisplayOn() {
     return SSD1306.DisplayOn;
+}
+
+
+// SSD1306 lib api
+void SSD1306_PrintBuffer(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string){
+	  ssd1306_SetCursor(cursorX, cursorY);
+	  ssd1306_WriteString(string, Font_6x8, color);
+}
+
+void SSD1306_Print(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string){
+	  ssd1306_SetCursor(cursorX, cursorY);
+	  ssd1306_WriteString(string, Font_6x8, color);
+	  ssd1306_UpdateScreen();
+}
+
+void SSD1306_Printf(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, const char* string, ...){
+	va_list argp;
+	va_start(argp, string);
+	char stringf[SSD1306_MAX_PRINTF_LEN];
+	if (vsprintf(stringf, string, argp) > 0){
+		SSD1306_Print(cursorX, cursorY, color, stringf);
+	}
+	va_end(argp);
 }

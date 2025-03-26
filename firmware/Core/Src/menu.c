@@ -24,8 +24,6 @@
 #define TOP_RIGHT_X 84
 #define TOP_Y		0
 
-void SSD1306_PrintBuffer(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string);
-
 static MENU_Option optionMain0 = {.x=BOTTOM_LEFT_CORNER_X, .y=BOTTOM_Y, .value=0, .string="Settings"};
 static MENU_Option optionMain1 = {.x=BOTTOM_RIGHT_CORNER_X, .y=BOTTOM_Y, .value=1, .string="Stop"};
 
@@ -115,7 +113,3 @@ void MENU_SetConfigWindow(void){
 	}
 }
 
-void SSD1306_PrintBuffer(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string){
-	  ssd1306_SetCursor(cursorX, cursorY);
-	  ssd1306_WriteString(string, Font_6x8, color);
-}

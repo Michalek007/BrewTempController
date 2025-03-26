@@ -29,7 +29,9 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart1;
@@ -37,14 +39,16 @@ extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN Private defines */
-
+#define HUART_PRINT &huart1
+#define MAX_PRINTF_LEN 100
 /* USER CODE END Private defines */
 
 void MX_USART1_UART_Init(void);
 void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void UART_Print(const char* string);
+void UART_Printf(const char* string, ...);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

@@ -27,9 +27,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include "ds18b20.h"
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
@@ -43,7 +40,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define MAX_PRINTF_LEN 100
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -82,10 +78,6 @@ volatile uint32_t enableTimer = 0;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void UART_Print(UART_HandleTypeDef *huart, const char* string);
-void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...);
-void SSD1306_Print(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string);
-void SSD1306_Printf(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, const char* string, ...);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -131,7 +123,7 @@ int main(void)
   ssd1306_Init();
 
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
-  UART_Print(&huart1,  "Initialization done!");
+  UART_Print("Initialization done!");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -139,7 +131,7 @@ int main(void)
   uint8_t romCode[DS18B20_ROM_CODE_SIZE] = {0};
   HAL_StatusTypeDef check = DS18B20_ReadAddress(romCode);
   if (check != HAL_OK){
-	  UART_Print(&huart1,  "Error occurred!");
+	  UART_Print( "Error occurred!");
   }
   else{
 	  uint8_t txNull[5] = {0};
@@ -221,15 +213,15 @@ int main(void)
 				  readTempFlag = 0;
 				  int16_t temp = DS18B20_GetTemp_Int(NULL);
 				  if (temp <= -200){
-					  UART_Print(&huart1, "Error occurred during reading temperature! ");
+					  UART_Print("Error occurred during reading temperature! ");
 				  }
-				  UART_Printf(&huart1, "T: %d\n", temp);
+				  UART_Printf("T: %d\n", temp);
 				  SSD1306_Printf(0, 11, White, "T: %d\n", temp);
 			  }
 			  if (!readTempFlag){
 				  check = DS18B20_StartMeasure(NULL);
 				  if (check != HAL_OK){
-					  UART_Print(&huart1,  "Error occurred!");
+					  UART_Print("Error occurred!");
 				  }
 				  else{
 					  readTempFlag = 1;
@@ -248,7 +240,7 @@ int main(void)
 	  if (buttonChosenFlag){
 		  buttonChosenFlag = 0;
 		  choosingEnabled = 0;
-		  UART_Print(&huart1,  "buttonChosenFlag!");
+		  UART_Print("buttonChosenFlag!");
 		  if (menuConfig.option->value == 1 && menuConfig.window == MENU_MAIN){
 			  enableTimer = !enableTimer;
 			  beerTimerTicks = timerTicks - beerTimerTicks;
@@ -314,37 +306,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-void UART_Print(UART_HandleTypeDef *huart, const char* string){
-	HAL_UART_Transmit(huart, (uint8_t*)string, strlen(string), HAL_MAX_DELAY);
-}
-
-void UART_Printf(UART_HandleTypeDef *huart, const char* string, ...){
-	va_list argp;
-	va_start(argp, string);
-	char stringf[MAX_PRINTF_LEN];
-	if (vsprintf(stringf, string, argp) > 0){
-		UART_Print(huart, stringf);
-	}
-	va_end(argp);
-}
-
-void SSD1306_Print(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string){
-	  ssd1306_SetCursor(cursorX, cursorY);
-	  ssd1306_WriteString(string, Font_6x8, color);
-	  ssd1306_UpdateScreen();
-}
-
-void SSD1306_Printf(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, const char* string, ...){
-	va_list argp;
-	va_start(argp, string);
-	char stringf[MAX_PRINTF_LEN];
-	if (vsprintf(stringf, string, argp) > 0){
-		SSD1306_Print(cursorX, cursorY, color, stringf);
-	}
-	va_end(argp);
-}
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM1) {
@@ -372,7 +333,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc) {
     if (hadc->Instance == ADC1) {
-		UART_Printf(&huart1, "ADC buffer: [%d, %d]\n", adcBuffer[0], adcBuffer[1]);
+		UART_Printf("ADC buffer: [%d, %d]\n", adcBuffer[0], adcBuffer[1]);
 		joystickFlag = 1;
     }
 }
@@ -385,7 +346,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		if (!buttonChosenFlag && choosingEnabled){
 			buttonChosenFlag = 1;
 		}
-		UART_Print(&huart1, "Button 1 pressed!");
+		UART_Print("Button 1 pressed!");
 	}
 }
 
@@ -402,7 +363,7 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-	  UART_Print(&huart1,  "Error handler callback!");
+	  UART_Print("Error handler callback!");
   }
   /* USER CODE END Error_Handler_Debug */
 }

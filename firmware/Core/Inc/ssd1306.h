@@ -211,6 +211,14 @@ void ssd1306_WriteCommand(uint8_t byte);
 void ssd1306_WriteData(uint8_t* buffer, size_t buff_size);
 SSD1306_Error_t ssd1306_FillBuffer(uint8_t* buf, uint32_t len);
 
+
+// SSD1306 lib api
+#define SSD1306_MAX_PRINTF_LEN 100
+
+void SSD1306_PrintBuffer(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string);
+void SSD1306_Print(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, char* string);
+void SSD1306_Printf(uint8_t cursorX, uint8_t cursorY, SSD1306_COLOR color, const char* string, ...);
+
 _END_STD_C
 
 #endif // __SSD1306_H__

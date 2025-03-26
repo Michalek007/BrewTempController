@@ -180,5 +180,17 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void UART_Print(const char* string){
+	HAL_UART_Transmit(HUART_PRINT, (uint8_t*)string, strlen(string), HAL_MAX_DELAY);
+}
 
+void UART_Printf(const char* string, ...){
+	va_list argp;
+	va_start(argp, string);
+	char stringf[MAX_PRINTF_LEN];
+	if (vsprintf(stringf, string, argp) > 0){
+		UART_Print(stringf);
+	}
+	va_end(argp);
+}
 /* USER CODE END 1 */
