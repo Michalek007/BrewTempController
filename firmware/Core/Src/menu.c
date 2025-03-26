@@ -46,6 +46,19 @@ void MENU_DisplayBeerRests(void){
 	}
 }
 
+void MENU_DisplayTimer(uint8_t minutes, uint8_t seconds){
+	SSD1306_Printf(98, 0, White, "%02ld:%02ld", minutes, seconds);
+}
+
+void MENU_DisplayTemperature(int16_t temp){
+	  SSD1306_Printf(0, 11, White, "T: %d\n", temp);
+}
+
+void MENU_DisplayEndMessage(void){
+	  SSD1306_Print(98, 0, White, "00:00");
+	  SSD1306_Print(0, 32, White, "All rests done!");
+}
+
 void MENU_DisplayOptions(void){
 	char temp[10];
 	switch (menuConfig.window){

@@ -24,4 +24,9 @@ extern BEER_Rest beerRest3;
 extern BEER_Rest* beerRests[];
 extern BEER_Rest* currentBeerRest;
 
+uint8_t BEER_NextRest(void);
+void BEER_RestartRest(void);
+void BEER_GetTempString(BEER_Rest* beerRest, char* string);
+void BEER_GetTimerString(BEER_Rest* beerRest, char* string);
+
 #endif /* INC_BEER_H_ */

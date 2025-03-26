@@ -65,9 +65,6 @@ volatile uint8_t choosingEnabled = 0;
 volatile uint32_t choosingTicks = 0;
 
 volatile uint8_t joystickFlag = 0;
-
-volatile uint32_t beerTimerTicks = 0;
-volatile uint32_t enableTimer = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -181,7 +178,28 @@ int main(void)
 		  timerFlag1000 = 0;
 		  HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		  if (menuConfig.window == MENU_MAIN){
-			  Timer_Display();
+
+			  if (Timer_Enable()){
+					uint32_t baseSeconds = currentBeerRest->minutes * 60;
+					uint32_t totalSeconds =  Timer_GetTotalSeconds();
+					if (baseSeconds <= totalSeconds){
+					  uint8_t done = BEER_NextRest();
+					  MENU_DisplayOptions();
+					  if (done){
+						  Timer_Stop();
+						  MENU_DisplayEndMessage();
+						  continue;
+					  }
+					  Timer_Start();
+					  baseSeconds = currentBeerRest->minutes * 60;
+					  totalSeconds =  Timer_GetTotalSeconds();
+					}
+					totalSeconds = baseSeconds - totalSeconds;
+					uint8_t minutes = totalSeconds / 60;
+					uint8_t seconds = totalSeconds % 60;
+					MENU_DisplayTimer(minutes, seconds);
+			  }
+
 			  if (readTempFlag){
 				  readTempFlag = 0;
 				  int16_t temp = DS18B20_GetTemp_Int(NULL);
@@ -189,7 +207,7 @@ int main(void)
 					  UART_Print("Error occurred during reading temperature! ");
 				  }
 				  UART_Printf("T: %d\n", temp);
-				  SSD1306_Printf(0, 11, White, "T: %d\n", temp);
+				  MENU_DisplayTemperature(temp);
 			  }
 			  if (!readTempFlag){
 				  check = DS18B20_StartMeasure(NULL);
