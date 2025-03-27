@@ -50,16 +50,11 @@
 
 /* USER CODE BEGIN PV */
 volatile uint8_t readTempFlag = 0;
-//uint8_t romeCode1[] =  {41, 96, 121, 139, 13, 0, 0, 30};
-//uint8_t romeCode2[] =  {41, 42, 71, 138, 178, 35, 6, 167};
-
 volatile uint8_t criticalMinTempFlag = 0;
 volatile uint8_t criticalMaxTempFlag = 0;
 
 volatile uint8_t choosingEnabled = 0;
 volatile uint32_t choosingTimerTicks = 0;
-
-volatile uint8_t doneFlag = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,17 +110,6 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t romCode[DS18B20_ROM_CODE_SIZE] = {0};
-  HAL_StatusTypeDef check = DS18B20_ReadAddress(romCode);
-  if (check != HAL_OK){
-	  UART_Print( "Error occurred!");
-  }
-  else{
-	  uint8_t txNull[5] = {0};
-	  HAL_UART_Transmit(&huart1, txNull, 5, 100);
-	  HAL_UART_Transmit(&huart1, romCode, DS18B20_ROM_CODE_SIZE, 100);
-	  HAL_UART_Transmit(&huart1, txNull, 5, 100);
-  }
   ssd1306_Fill(Black);
   MENU_DisplayOptions();
   while (1)
@@ -165,6 +149,9 @@ int main(void)
 					  if (done){
 						  Timer_Stop();
 						  HAL_GPIO_WritePin(HEATER_GPIO_Port, HEATER_Pin, GPIO_PIN_RESET);
+						  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+						  criticalMaxTempFlag = 0;
+						  criticalMinTempFlag = 0;
 						  doneFlag = 1;
 						  MENU_DisplayEndMessage();
 						  continue;
@@ -215,9 +202,9 @@ int main(void)
 				  }
 			  }
 			  if (!readTempFlag){
-				  check = DS18B20_StartMeasure(NULL);
+				  HAL_StatusTypeDef check = DS18B20_StartMeasure(NULL);
 				  if (check != HAL_OK){
-					  UART_Print("Error occurred!");
+					  UART_Print("Error occurred during temperature measurement!");
 				  }
 				  else{
 					  readTempFlag = 1;

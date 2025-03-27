@@ -16,13 +16,6 @@ typedef enum {
 	MENU_DETAILS
 } MENU_Window;
 
-typedef enum {
-	MENU_UP,
-	MENU_DOWN,
-	MENU_RIGHT,
-	MENU_LEFT
-} MENU_Direction;
-
 typedef struct {
     uint8_t x;
     uint8_t y;
@@ -37,14 +30,17 @@ typedef struct {
 } MENU_Config;
 
 extern MENU_Config menuConfig;
-extern MENU_Direction menuDirection;
+extern volatile uint8_t doneFlag;
 
 void MENU_DisplayBeerRests(void);
 void MENU_DisplayTimer(uint8_t minutes, uint8_t seconds);
 void MENU_DisplayTemperature(int16_t temp);
 void MENU_DisplayEndMessage(void);
 void MENU_DisplayOptions(void);
-void MENU_DisplayChosenOption(void);
+void MENU_HighlightSelectedOption(void);
+void MENU_SetNextOption(void);
 void MENU_SetConfigWindow(void);
+void MENU_SelectedOptionHandler(void);
+
 
 #endif /* INC_MENU_H_ */

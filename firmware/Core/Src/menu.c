@@ -44,6 +44,10 @@ static MENU_Option* settingsOptions[SETTINGS_OPTIONS_COUNT] = {&optionSettings0}
 MENU_Config menuConfig = {.lastOption=NULL, .option=&optionSettings0, .window=MENU_SETTINGS};
 
 
+volatile uint8_t doneFlag = 0;
+
+
+
 void MENU_DisplayBeerRests(void){
 	char temp[10];
 	for (uint8_t i=0;i<3;++i){
@@ -140,6 +144,9 @@ void MENU_SetConfigWindow(void){
 
 void MENU_SelectedOptionHandler(void){
 	  if (menuConfig.option->value == 1 && menuConfig.window == MENU_MAIN){
+		  if (doneFlag){
+			  return;
+		  }
 		  Timer_Toggle();
 		  if (menuConfig.option->value == 1){
 			  if (resume){
@@ -154,6 +161,7 @@ void MENU_SelectedOptionHandler(void){
 		return;
 	  }
 	  else if (menuConfig.option->value == 0 && menuConfig.window == MENU_SETTINGS){
+		  doneFlag = 0;
 		  BEER_RestartRest();
 		  Timer_Start();
 	  }
