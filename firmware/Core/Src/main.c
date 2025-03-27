@@ -31,6 +31,7 @@
 #include "menu.h"
 #include "beer.h"
 #include "timer.h"
+#include "actuators.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,8 +51,8 @@
 
 /* USER CODE BEGIN PV */
 volatile uint8_t readTempFlag = 0;
-volatile uint8_t criticalMinTempFlag = 0;
-volatile uint8_t criticalMaxTempFlag = 0;
+//volatile uint8_t criticalMinTempFlag = 0;
+//volatile uint8_t criticalMaxTempFlag = 0;
 
 volatile uint8_t choosingEnabled = 0;
 volatile uint32_t choosingTimerTicks = 0;
@@ -119,9 +120,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  if (timerFlag250){
 		  timerFlag250 = 0;
-		  if (criticalMaxTempFlag){
-			  HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
-		  }
+		  Actuators_BuzzerToggleFast();
 	  }
 	  if (timerFlag500){
 		  timerFlag500 = 0;
@@ -131,9 +130,7 @@ int main(void)
 				  MENU_DisplayOptions();
 			  }
 		  }
-		  if (criticalMinTempFlag){
-			  HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
-		  }
+		  Actuators_BuzzerToggle();
 	  }
 	  if (timerFlag1000){
 		  timerFlag1000 = 0;
@@ -148,10 +145,7 @@ int main(void)
 					  MENU_DisplayOptions();
 					  if (done){
 						  Timer_Stop();
-						  HAL_GPIO_WritePin(HEATER_GPIO_Port, HEATER_Pin, GPIO_PIN_RESET);
-						  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
-						  criticalMaxTempFlag = 0;
-						  criticalMinTempFlag = 0;
+						  Actuators_Stop();
 						  doneFlag = 1;
 						  MENU_DisplayEndMessage();
 						  continue;
@@ -175,30 +169,8 @@ int main(void)
 				  UART_Printf("T: %d\n", temp);
 				  MENU_DisplayTemperature(temp);
 
-				  if (doneFlag){
-					  continue;
-				  }
-
-				  int16_t tempAverage = (currentBeerRest->tempMin + currentBeerRest->tempMax) / 2;
-				  if (temp <= tempAverage){
-					  if (temp < currentBeerRest->tempMin){
-						  criticalMinTempFlag = 1;
-					  }
-					  else if (criticalMinTempFlag){
-						  criticalMinTempFlag = 0;
-						  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
-					  }
-					  HAL_GPIO_WritePin(HEATER_GPIO_Port, HEATER_Pin, GPIO_PIN_SET);
-				  }
-				  else{
-					  if (temp > currentBeerRest->tempMax){
-						  criticalMaxTempFlag = 1;
-					  }
-					  else if (criticalMaxTempFlag){
-						  criticalMaxTempFlag = 0;
-						  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
-					  }
-					  HAL_GPIO_WritePin(HEATER_GPIO_Port, HEATER_Pin, GPIO_PIN_RESET);
+				  if (!doneFlag){
+					  Actuators_TempControl(temp);
 				  }
 			  }
 			  if (!readTempFlag){
