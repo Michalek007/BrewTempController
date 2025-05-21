@@ -16,5 +16,4 @@ void Timer_Stop(void);
 uint8_t Timer_Enable(void);
 uint32_t Timer_GetTotalSeconds(void);
 
-
 #endif /* INC_TIMER_H_ */

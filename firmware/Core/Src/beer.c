@@ -9,18 +9,16 @@
 
 #define BEER_RESTS 3
 
-BEER_Rest beerRest1 = {.name="Rest1", .tempMin=26, .tempMax=28, .minutes=1};
-BEER_Rest beerRest2 = {.name="Rest2", .tempMin=24, .tempMax=26, .minutes=1};
-BEER_Rest beerRest3 = {.name="Rest3", .tempMin=18, .tempMax=22, .minutes=1};
+BEER_Rest beerRest1 = { .name = "Rest1", .tempMin = 26, .tempMax = 28, .minutes = 1 };
+BEER_Rest beerRest2 = { .name = "Rest2", .tempMin = 24, .tempMax = 26, .minutes = 1 };
+BEER_Rest beerRest3 = { .name = "Rest3", .tempMin = 18, .tempMax = 22, .minutes = 1 };
 
-
-BEER_Rest* currentBeerRest = &beerRest1;
-BEER_Rest* beerRests[] = {&beerRest1, &beerRest2, &beerRest3};
+BEER_Rest *currentBeerRest = &beerRest1;
+BEER_Rest *beerRests[] = { &beerRest1, &beerRest2, &beerRest3 };
 static uint8_t currentBeerRestIndex = 0;
 
-
-uint8_t BEER_NextRest(void){
-	if (currentBeerRestIndex >= BEER_RESTS-1){
+uint8_t BEER_NextRest(void) {
+	if (currentBeerRestIndex >= BEER_RESTS - 1) {
 		return 1;
 	}
 	currentBeerRestIndex++;
@@ -28,15 +26,15 @@ uint8_t BEER_NextRest(void){
 	return 0;
 }
 
-void BEER_RestartRest(void){
+void BEER_RestartRest(void) {
 	currentBeerRest = &beerRest1;
 	currentBeerRestIndex = 0;
 }
 
-void BEER_GetTempString(BEER_Rest* beerRest, char* string){
+void BEER_GetTempString(BEER_Rest *beerRest, char *string) {
 	sprintf(string, "%d-%d", beerRest->tempMin, beerRest->tempMax);
 }
 
-void BEER_GetTimerString(BEER_Rest* beerRest, char* string){
+void BEER_GetTimerString(BEER_Rest *beerRest, char *string) {
 	sprintf(string, "%02d:00", beerRest->minutes);
 }

@@ -22,7 +22,7 @@ extern const SSD1306_Font_t Font_16x24;
 /** Generated Roboto Thin 15 
  * @copyright Google https://github.com/googlefonts/roboto
  * @license This font is licensed under the Apache License, Version 2.0.
-*/
+ */
 extern const SSD1306_Font_t Font_16x15;
 #endif
 

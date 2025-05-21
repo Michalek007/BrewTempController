@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.h
+ * @brief          : Header for main.c file.
+ *                   This file contains the common defines of the application.
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
+#include "stm32f1xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -59,18 +59,21 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LD1_Pin GPIO_PIN_13
 #define LD1_GPIO_Port GPIOC
+#define HEATER_Pin GPIO_PIN_0
+#define HEATER_GPIO_Port GPIOB
+#define MOTOR_Pin GPIO_PIN_1
+#define MOTOR_GPIO_Port GPIOB
+#define BT2_Pin GPIO_PIN_13
+#define BT2_GPIO_Port GPIOB
+#define BT2_EXTI_IRQn EXTI15_10_IRQn
 #define BT1_Pin GPIO_PIN_14
 #define BT1_GPIO_Port GPIOB
 #define BT1_EXTI_IRQn EXTI15_10_IRQn
-#define BT2_Pin GPIO_PIN_15
-#define BT2_GPIO_Port GPIOB
-#define BT2_EXTI_IRQn EXTI15_10_IRQn
-#define BUZZER_Pin GPIO_PIN_15
-#define BUZZER_GPIO_Port GPIOA
-#define MOTOR_Pin GPIO_PIN_3
-#define MOTOR_GPIO_Port GPIOB
-#define HEATER_Pin GPIO_PIN_4
-#define HEATER_GPIO_Port GPIOB
+#define BT3_Pin GPIO_PIN_15
+#define BT3_GPIO_Port GPIOB
+#define BT3_EXTI_IRQn EXTI15_10_IRQn
+#define BUZZER_Pin GPIO_PIN_8
+#define BUZZER_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

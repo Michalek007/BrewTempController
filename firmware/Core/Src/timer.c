@@ -10,25 +10,25 @@
 static volatile uint32_t beerTimerTicks = 0;
 static volatile uint32_t enableTimer = 0;
 
-void Timer_Toggle(void){
+void Timer_Toggle(void) {
 	enableTimer = !enableTimer;
 	beerTimerTicks = TIM1_GetTicks() - beerTimerTicks;
 }
 
-void Timer_Start(void){
+void Timer_Start(void) {
 	enableTimer = 1;
 	beerTimerTicks = TIM1_GetTicks();
 }
 
-void Timer_Stop(void){
+void Timer_Stop(void) {
 	enableTimer = 0;
 	beerTimerTicks = 0;
 }
 
-uint8_t Timer_Enable(void){
+uint8_t Timer_Enable(void) {
 	return enableTimer;
 }
 
-uint32_t Timer_GetTotalSeconds(void){
+uint32_t Timer_GetTotalSeconds(void) {
 	return (TIM1_GetTicks() - beerTimerTicks) / 1000;
 }

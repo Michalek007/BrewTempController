@@ -14,5 +14,6 @@ void Actuators_Stop(void);
 void Actuators_TempControl(int16_t temp);
 void Actuators_BuzzerToggle(void);
 void Actuators_BuzzerToggleFast(void);
+void Actuators_MotorToggle(void);
 
 #endif /* INC_ACTUATORS_H_ */

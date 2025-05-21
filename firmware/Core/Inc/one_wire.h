@@ -16,6 +16,6 @@ uint8_t OneWire_Read(void);
 
 void OneWire_Write(uint8_t byte);
 
-uint8_t OneWire_CRC(const uint8_t* data, uint8_t len);
+uint8_t OneWire_CRC(const uint8_t *data, uint8_t len);
 
 #endif /* INC_ONE_WIRE_H_ */
