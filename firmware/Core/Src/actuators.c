@@ -54,3 +54,12 @@ void Actuators_BuzzerToggleFast(void) {
 void Actuators_MotorToggle(void) {
 	HAL_GPIO_TogglePin(MOTOR_GPIO_Port, MOTOR_Pin);
 }
+
+void Actuators_MotorStart(void) {
+	HAL_GPIO_WritePin(MOTOR_GPIO_Port, GPIO_PIN_RESET);
+}
+
+void Actuators_MotorStop(void) {
+	HAL_GPIO_WritePin(MOTOR_GPIO_Port, GPIO_PIN_SET);
+}
+

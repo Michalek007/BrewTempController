@@ -103,6 +103,8 @@ int main(void) {
 	MX_I2C2_Init();
 	MX_TIM2_Init();
 	/* USER CODE BEGIN 2 */
+	Actuators_MotorStop();
+
 	HAL_TIM_Base_Start_IT(&htim1);
 	ssd1306_Init();
 
